@@ -4,45 +4,42 @@ Regular string generator
 This is a library, which generate from simple regular expressions their matching strings. It uses parsec for parsing the regular expression. I found that instead of a monad, the arrow interface was extremely useful for creating the generator. I made a special arrow (RandomArrow), which supply the random values.
 
 The library supports the following symbols:
-* Symbol 
 
-Meaning
+Characters 
 
-* Characters 
+* Matches a character
 
-Matches a character
+(regex)\* 
 
-* (regex)\* 
+* Matches zero or more of the previous expression
 
-Matches zero or more of the previous expression
+(regex)+ 
 
-* (regex)+ 
+* Matches one or more of the previous expression
 
-Matches one or more of the previous expression
+(regex)? 
 
-* (regex)? 
+* Matches zero or one of the previous expression 
 
-Matches zero or one of the previous expression 
+(regex){n,} 
+ 
+* Matches n or more of the previous expression 
 
-* (regex){n,} 
+(regex){,n} 
 
-Matches n or more of the previous expression 
+* Matches between zero and n of the previous expression
 
-* (regex){,n} 
+(regex){n,p} 
 
-Matches between zero and n of the previous expression
+* Matches between n and p of the previous expression
 
-* (regex){n,p} 
+[r1-r2p1-p2q1-..] 
 
-Matches between n and p of the previous expression
+* Match any character between r1 and r2 or between p1 and p2 or between q1 ...
 
-* [r1-r2p1-p2q1-..] 
+(regex) 
 
-Match any character between r1 and r2 or between p1 and p2 or between q1 ...
-
-* (regex) 
-
-group this expression 
+* group this expression 
 
 
 And example expression would be:
