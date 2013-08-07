@@ -3,6 +3,9 @@ Regular string generator
 
 This is a library, which generate from simple regular expressions their matching strings. It uses parsec for parsing the regular expression. I found that instead of a monad, the arrow interface was extremely useful for creating the generator. I made a special arrow (RandomArrow), which supply the random values.
 
+Supported regex 
+===============
+
 The library supports the following symbols:
 
 Characters 
@@ -41,6 +44,8 @@ Characters
 
 * group this expression 
 
+Examples 
+========
 
 And example expression would be:
 
