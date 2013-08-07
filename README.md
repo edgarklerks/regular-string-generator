@@ -6,23 +6,23 @@ This is a library, which generate from simple regular expressions their matching
 The library supports the following symbols:
 
 * Characters
- - Matches a character
+  * Matches a character
 * (regex)\* 
- - Matches zero or more of the previous expression
+  * Matches zero or more of the previous expression
 * (regex)+
- - Matches one or more of the previous expression
+  * Matches one or more of the previous expression
 * (regex)?
- - Matches zero or one of the previous expression 
+  * Matches zero or one of the previous expression 
 * (regex){n,}
- - Matches n or more of the previous expression 
+  * Matches n or more of the previous expression 
 * (regex){,n}
- - Matches between zero and n of the previous expression
+  * Matches between zero and n of the previous expression
 * (regex){n,p}
- - Matches between n and p of the previous expression
+  * Matches between n and p of the previous expression
 * [r1-r2p1-p2q1-..]
- - Match any character between r1 and r2 or between p1 and p2 or between q1 ...
+  *  Match any character between r1 and r2 or between p1 and p2 or between q1 ...
 * (regex)
- - group this expression 
+  * group this expression 
 
 And example expression would be:
 
