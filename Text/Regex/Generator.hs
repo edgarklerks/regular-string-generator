@@ -1,7 +1,7 @@
-{-# LANGUAGE RankNTypes,Arrows,BangPatterns #-}
+{-# LANGUAGE RankNTypes,Arrows,BangPatterns, NoMonomorphismRestriction #-}
 module Text.Regex.Generate (
 	generateRegulars,
-	Seed(..)  
+	Seed(..) 
 ) where 
 
 import Data.Monoid
@@ -14,6 +14,7 @@ import Text.Parsec.Combinator
 import System.Random 
 import Control.Category 
 import Control.Arrow 
+import Control.Arrow.Random 
 import Prelude hiding ((.), id)
 import Debug.Trace
 -- | main api
@@ -38,33 +39,6 @@ newtype RegExp = RegExp {
 	unRegExp :: [RegExpD]
 	} 
 
-newtype RandomArrow a b = RandomArrow {
-		runRandomArrow :: Seed -> a -> (b,Seed)
-	}	
-
-instance Category RandomArrow where 
-	id = RandomArrow (\s a -> (a, s))
-	(.) (RandomArrow f) (RandomArrow g) = RandomArrow (\s a -> let (b, s') = g s a 
-								   in f s' b)
-instance Arrow RandomArrow where 
-	arr f = RandomArrow (\s a -> (f a, s))
-	first (RandomArrow f) = RandomArrow (\s (a,b) -> 
-				let (c, s') = f s a 
-			  	in ((c,b), s')
-			)
-	second (RandomArrow f) = RandomArrow (\s (a,b) ->
-				let (c, s') = f s b 
-				in ((a,c),s'))
-instance ArrowChoice RandomArrow where 
-	left (RandomArrow f) = RandomArrow $ \s a -> case a of 
-							Left a -> let (b, s') = f s a	
-								  in (Left b, s')
-							Right b -> (Right b, s)
-
-
-state :: (a -> Seed -> (b, Seed)) -> RandomArrow a b 
-state f = RandomArrow (\s a -> f a s)  
-
 instance Show RegExp where 
 	show (RegExp xs) = showRegExpD =<< xs 
 -- |  Generate string, which match the regular expression
@@ -82,12 +56,12 @@ foreverA f = RandomArrow $ \s a ->    let (b,s') = runRandomArrow f s a
 				      in (b : xs,s'') 
 
 
-generate :: RandomArrow RegExp String 
+generate :: RandomGen g => RandomArrow g RegExp String 
 generate = proc (RegExp xs) -> do 
 		ys <- id -<  xs 
 		flatMapList genOne -< ys   
 
-flatMapList :: Show b => Monoid b => RandomArrow a b -> RandomArrow [a] b  
+flatMapList :: RandomGen g => Show b => Monoid b => RandomArrow g a b -> RandomArrow g [a] b  
 flatMapList f = proc xs -> do
 			case xs of 
 			  [] -> returnA -< mempty 
@@ -96,29 +70,34 @@ flatMapList f = proc xs -> do
 				n <- f -< x  
 				returnA -<  mappend n p 
 
-genOne :: RandomArrow RegExpD String   
+genOne :: RandomGen g => RandomArrow g RegExpD String   
 genOne  = proc x -> do 
 	case x of 
 	  Character x -> arr (\x -> [x]) -< x 
 	  Range xs Nothing -> do 
 			p <- choose -< xs
-			range -< p  
+			arr return <<< rangeRegexp -< p
 	  Range xs (Just a) -> do 
 			 b <- toNum -< a 
-			 repeatRandom rangeOne -< (xs,b) 
+			 repeatFold (:) "" rangeOne -< (xs,b) 
 	  Group r Nothing -> do 
 			x <- choose -< r  
 			generate -< x
 	  Group r (Just a) ->  do 
 		x <- choose -< r 
 		b <- toNum -< a
-		repeatRandom  generate -< (x,b)  
+		repeatFold (++) "" generate -< (x,b)  
 	where rangeOne = proc xs -> do  
 			p <- choose -< xs 
-			range -< p 
-	  
-	  
-toNum :: RandomArrow RegExpD Int 
+			rangeRegexp -< p 
+
+
+rangeRegexp :: RandomGen g => RandomArrow g (RegExpD, RegExpD) Char 
+rangeRegexp = proc (Character x, Character y) -> do 
+	xs <- range -< (x,y)
+	returnA -< xs 
+
+toNum :: RandomGen g => RandomArrow g RegExpD Int 
 toNum = proc x -> do 
 		case x of 
 		  Star -> arr abs <<< state randomR -< (1,50)   
@@ -126,29 +105,6 @@ toNum = proc x -> do
 		  From x -> state randomR -< (x,50)
 		  Till x  -> state randomR -< (0, x)
 		  FromTill x -> state randomR -< x 
-	 		
-repeatRandom :: RandomArrow a String -> RandomArrow (a,Int) String
-repeatRandom  f = proc (x,b) -> do 
-			case b of 
-			   0 -> returnA -< []
-			   n -> do  
-				rest <- repeatRandom f -< (x, n - 1)
-				p <- f -< x  	
-				returnA -<  (p ++ rest) 
-
-choose :: RandomArrow [a] a 
-choose = proc xs -> do 
-		p <- state (\xs -> randomR (0, length xs - 1)) -< xs
-		returnA -< xs !! p
-				
-
-range :: RandomArrow (RegExpD,RegExpD) String 
-range = proc x -> do 
-	  case x of 	
-	   (Character a, Character b) -> arr (\x -> [x]) <<< state randomR -< (a,b)
-	  
-		
-
 
 
 {--	
